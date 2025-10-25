@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IoT Smart AC Controller — Interface</title>
+  <style>
+    /* Minimal modern styling — copy into your project or keep inline for quick use */
+    :root{
+      --bg:#0f1724; --card:#0b1220; --accent:#22c55e; --muted:#94a3b8; --glass: rgba(255,255,255,0.04);
+      --radius:14px;
+    }
+    *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{margin:0;background:linear-gradient(180deg,#071024 0%, #081827 100%);color:#e6eef8;display:flex;align-items:center;justify-content:center;height:100vh;padding:28px}
+    .wrap{width:100%;max-width:980px}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    .logo{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#06b6d4);display:flex;align-items:center;justify-content:center;font-weight:700;color:#04263a}
+    h1{font-size:20px;margin:0}
+    .grid{display:grid;grid-template-columns:360px 1fr;gap:18px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:var(--radius);padding:18px;box-shadow:0 6px 18px rgba(2,6,23,0.6);}
+    .status{display:flex;flex-direction:column;gap:12px}
+    .big-temp{font-size:56px;font-weight:700;line-height:1;margin:0}
+    .sub{color:var(--muted);font-size:13px}
+    .row{display:flex;gap:12px;align-items:center}
+    .toggle{cursor:pointer;padding:10px 16px;border-radius:10px;background:var(--glass);display:inline-flex;align-items:center;gap:8px}
+    .btn{background:var(--accent);color:#04263a;padding:10px 14px;border-radius:10px;border:0;cursor:pointer;font-weight:700}
+    .control{display:flex;flex-direction:column;gap:10px}
+    label{font-size:13px;color:var(--muted)}
+    input[type=range]{width:100%}
+    select,input[type=number]{background:transparent;border:1px solid rgba(255,255,255,0.05);padding:10px;border-radius:8px;color:inherit}
+    .modes{display:flex;gap:8px}
+    .mode{padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.02);cursor:pointer}
+    .mode.active{outline:2px solid rgba(255,255,255,0.04);background:linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))}
+    .log{height:240px;overflow:auto;background:linear-gradient(180deg, rgba(2,6,23,0.5), rgba(2,6,23,0.35));padding:12px;border-radius:10px;font-size:13px}
+    .schedule{margin-top:10px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;text-align:left;border-bottom:1px dashed rgba(255,255,255,0.03);font-size:13px}
+    footer{margin-top:14px;color:var(--muted);font-size:12px}
+    @media (max-width:880px){.grid{grid-template-columns:1fr;}.logo{display:none}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">AC</div>
+      <div>
+        <h1>Smart AC Controller</h1>
+        <div class="sub">Control and monitor your IoT AC — connects to your backend (REST or WebSocket)</div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- Left column: current status + quick controls -->
+      <div class="card">
+        <div class="status">
+          <div class="row" style="justify-content:space-between">
+            <div>
+              <div class="sub">Power</div>
+              <div id="powerState" class="row" style="align-items:center;gap:10px">
+                <div id="powerBadge" class="toggle">OFF</div>
+                <button id="togglePowerBtn" class="btn">Toggle Power</button>
+              </div>
+            </div>
+            <div style="text-align:right">
+              <div class="sub">Mode</div>
+              <div id="modeBadge" class="sub">--</div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px;align-items:center">
+            <div style="flex:0 0 130px;text-align:center">
+              <p id="currentTemp" class="big-temp">--°C</p>
+              <div class="sub">Room</div>
+            </div>
+            <div style="flex:1">
+              <div class="control">
+                <label>Set temperature</label>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <button id="tempDown" class="toggle">-</button>
+                  <input id="setTemp" type="number" value="24" min="16" max="30" style="width:84px" />
+                  <button id="tempUp" class="toggle">+</button>
+                  <button id="applyTemp" class="btn">Apply</button>
+                </div>
+
+                <div style="display:flex;gap:8px;margin-top:8px">
+                  <div style="flex:1">
+                    <label>Fan speed</label>
+                    <input id="fanSpeed" type="range" min="0" max="3" value="2" />
+                    <div class="sub" id="fanLabel">2</div>
+                  </div>
+                  <div style="width:160px">
+                    <label>Mode</label>
+                    <div class="modes" id="modes">
+                      <div class="mode" data-mode="cool">Cool</div>
+                      <div class="mode" data-mode="heat">Heat</div>
+                      <div class="mode" data-mode="fan">Fan</div>
+                      <div class="mode" data-mode="auto">Auto</div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:12px">
+            <div>
+              <label>Swing / Vane</label>
+              <select id="swing">
+                <option value="off">Off</option>
+                <option value="vertical">Vertical</option>
+                <option value="horizontal">Horizontal</option>
+                <option value="both">Both</option>
+              </select>
+            </div>
+            <div>
+              <label>Eco</label>
+              <button id="ecoBtn" class="toggle">Off</button>
+            </div>
+          </div>
+
+          <div style="margin-top:12px">
+            <label>Quick actions</label>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <button id="turnOffNow" class="toggle">Turn Off Now</button>
+              <button id="boostCool" class="toggle">Boost Cool</button>
+              <button id="saveScene" class="toggle">Save Scene</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right column: logs, schedule, diagnostics -->
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div>
+            <div class="sub">Live log</div>
+            <div class="sub">Realtime events and server status</div>
+          </div>
+          <div>
+            <button id="refreshBtn" class="toggle">Refresh</button>
+            <button id="connectBtn" class="btn">Connect</button>
+          </div>
+        </div>
+
+        <div class="log" id="log">
+          <!-- Live events appear here -->
+        </div>
+
+        <div class="schedule card" style="margin-top:12px;padding:12px;background:transparent">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="sub">Schedule (example)</div>
+              <div class="sub">Turn AC on/off at given times</div>
+            </div>
+            <div>
+              <button id="addSchedule" class="toggle">Add</button>
+            </div>
+          </div>
+
+          <table style="margin-top:10px">
+            <thead><tr><th>Time</th><th>Action</th><th>Temp</th><th></th></tr></thead>
+            <tbody id="scheduleBody">
+              <tr><td>07:00</td><td>On</td><td>24°C</td><td><button class="toggle small">Del</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <footer>
+          <div>Notes: This UI talks to your backend via REST endpoints (GET /api/ac/status, POST /api/ac/control) and can subscribe to WebSocket /ws for live updates. See comments in the code for implementation hints.</div>
+        </footer>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ---------- Configuration ----------
+       Edit these to match your backend endpoints.
+       - REST_BASE: base URL for REST API (example: http://localhost:5000)
+       - WS_URL: WebSocket URL for realtime updates (example: ws://localhost:5000/ws)
+       Backend should handle: GET /api/ac/status -> JSON status
+       POST /api/ac/control -> JSON {action:'set',payload:{...}}
+    */
+    const REST_BASE = '';
+    const STATUS_URL = REST_BASE + '/api/ac/status';
+    const CONTROL_URL = REST_BASE + '/api/ac/control';
+    const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
+
+    // Elements
+    const powerBadge = document.getElementById('powerBadge');
+    const powerState = document.getElementById('powerState');
+    const togglePowerBtn = document.getElementById('togglePowerBtn');
+    const currentTemp = document.getElementById('currentTemp');
+    const setTempInput = document.getElementById('setTemp');
+    const tempUp = document.getElementById('tempUp');
+    const tempDown = document.getElementById('tempDown');
+    const applyTemp = document.getElementById('applyTemp');
+    const fanSpeed = document.getElementById('fanSpeed');
+    const fanLabel = document.getElementById('fanLabel');
+    const modes = document.getElementById('modes');
+    const modeBadge = document.getElementById('modeBadge');
+    const logEl = document.getElementById('log');
+    const connectBtn = document.getElementById('connectBtn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const ecoBtn = document.getElementById('ecoBtn');
+
+    let ws = null;
+
+    // --- helpers ---
+    function log(msg){
+      const p = document.createElement('div');
+      p.textContent = new Date().toLocaleTimeString() + ' — ' + msg;
+      logEl.prepend(p);
+    }
+
+    function setPower(on){
+      powerBadge.textContent = on ? 'ON' : 'OFF';
+      powerBadge.style.background = on ? 'linear-gradient(90deg, rgba(34,197,94,0.18), rgba(6,182,212,0.06))' : 'transparent';
+    }
+
+    function applyLocalStatus(status){
+      // status expected: {power:bool, mode:'cool'|'heat'..., temp:24, roomTemp:26, fan:2}
+      setPower(status.power);
+      modeBadge.textContent = (status.mode||'--').toUpperCase();
+      currentTemp.textContent = (status.roomTemp!=null ? status.roomTemp : '--') + '°C';
+      setTempInput.value = status.temp || setTempInput.value;
+      fanSpeed.value = status.fan!=null ? status.fan : fanSpeed.value;
+      fanLabel.textContent = fanSpeed.value;
+      // mark active mode UI
+      document.querySelectorAll('.mode').forEach(m=>m.classList.remove('active'));
+      const active = document.querySelector(`.mode[data-mode="${status.mode}"]`);
+      if(active) active.classList.add('active');
+    }
+
+    async function fetchStatus(){
+      try{
+        const res = await fetch(STATUS_URL);
+        if(!res.ok) throw new Error('status fetch failed');
+        const data = await res.json();
+        applyLocalStatus(data);
+        log('Status refreshed from server.');
+      }catch(e){
+        log('Could not fetch status: ' + e.message);
+      }
+    }
+
+    async function sendControl(payload){
+      try{
+        const res = await fetch(CONTROL_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        if(!res.ok) throw new Error('control failed');
+        const r = await res.json();
+        log('Control acknowledged: ' + JSON.stringify(r));
+        // optionally refresh status
+        if(REST_BASE) setTimeout(fetchStatus, 400);
+      }catch(e){
+        log('Control error: ' + e.message);
+      }
+    }
+
+    // UI actions
+    togglePowerBtn.onclick = ()=>{
+      const action = {action:'toggle_power'};
+      sendControl(action);
+      log('Sent toggle power');
+    }
+
+    tempUp.onclick = ()=>{ setTempInput.value = Math.min(30, Number(setTempInput.value)+1); }
+    tempDown.onclick = ()=>{ setTempInput.value = Math.max(16, Number(setTempInput.value)-1); }
+    applyTemp.onclick = ()=>{
+      sendControl({action:'set_temp',payload:{temp: Number(setTempInput.value)}});
+      log('Set temperature to ' + setTempInput.value + '°C');
+    }
+
+    fanSpeed.oninput = ()=>{ fanLabel.textContent = fanSpeed.value; }
+    fanSpeed.onchange = ()=>{ sendControl({action:'set_fan',payload:{fan: Number(fanSpeed.value)}}); log('Set fan speed ' + fanSpeed.value); }
+
+    modes.addEventListener('click', (e)=>{
+      const el = e.target.closest('.mode');
+      if(!el) return;
+      const mode = el.dataset.mode;
+      document.querySelectorAll('.mode').forEach(m=>m.classList.remove('active'));
+      el.classList.add('active');
+      sendControl({action:'set_mode',payload:{mode}});
+      log('Mode set to ' + mode);
+    });
+
+    ecoBtn.onclick = ()=>{
+      const enabled = ecoBtn.textContent === 'On';
+      ecoBtn.textContent = enabled ? 'Off' : 'On';
+      sendControl({action:'set_eco',payload:{on: !enabled}});
+      log('Eco ' + (!enabled ? 'enabled' : 'disabled'));
+    }
+
+    // schedule / add row (frontend only example)
+    document.getElementById('addSchedule').onclick = ()=>{
+      const tbody = document.getElementById('scheduleBody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${new Date().toTimeString().slice(0,5)}</td><td>On</td><td>24°C</td><td><button class='toggle small' onclick='this.closest("tr").remove()'>Del</button></td>`;
+      tbody.prepend(tr);
+      log('Added schedule (local only)');
+    }
+
+    // connect WebSocket for realtime updates
+    connectBtn.onclick = ()=>{
+      if(ws && ws.readyState === WebSocket.OPEN){ ws.close(); connectBtn.textContent='Connect'; log('WebSocket closed'); return; }
+      try{
+        ws = new WebSocket(WS_URL);
+        ws.onopen = ()=>{ connectBtn.textContent='Disconnect'; log('WebSocket connected'); };
+        ws.onmessage = (evt)=>{
+          try{
+            const msg = JSON.parse(evt.data);
+            // expected server messages: {type:'status',payload:{...}} or {type:'event',text:'...'}
+            if(msg.type === 'status') applyLocalStatus(msg.payload);
+            else if(msg.type === 'event') log(msg.text);
+            else log('WS: ' + JSON.stringify(msg));
+          }catch(e){ log('WS parse error'); }
+        };
+        ws.onclose = ()=>{ connectBtn.textContent='Connect'; log('WebSocket disconnected'); };
+        ws.onerror = (e)=>{ log('WebSocket error'); };
+      }catch(e){ log('WS open failed: ' + e.message); }
+    }
+
+    refreshBtn.onclick = ()=>fetchStatus();
+    document.getElementById('turnOffNow').onclick = ()=>sendControl({action:'turn_off'});
+    document.getElementById('boostCool').onclick = ()=>sendControl({action:'boost_cool'});
+    document.getElementById('saveScene').onclick = ()=>{
+      const scene = {temp:setTempInput.value,fan:fanSpeed.value,mode:document.querySelector('.mode.active')?.dataset.mode||null};
+      sendControl({action:'save_scene',payload:scene});
+      log('Scene saved');
+    }
+
+    // initial small UX
+    document.addEventListener('DOMContentLoaded', ()=>{
+      log('UI ready');
+      // fetch initial status if REST_BASE provided
+      if(REST_BASE) fetchStatus();
+    });
+
+    /* ---------- Backend hints (not implemented here) ----------
+      1) A simple Node/Express or Python/Flask server should implement:
+         - GET /api/ac/status -> returns JSON like {power:true,mode:'cool',temp:24,roomTemp:25,fan:2}
+         - POST /api/ac/control -> accepts {action:'set_temp', payload:{temp:24}} and send commands to the device
+      2) To persist events and telemetry to MongoDB, have your backend save incoming telemetry documents into a collection.
+      3) For realtime, use WebSocket (ws or socket.io) to push telemetry to connected UIs.
+      4) Security: protect endpoints with API keys / sessions and validate inputs.
+    */
+  </script>
+</body>
+</html>
